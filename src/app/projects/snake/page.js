@@ -1,11 +1,9 @@
-export default function About() {
+import dynamic from "next/dynamic";
+const Snake = dynamic(() => import("./Snake"), { ssr: false });
+export default function SnakeView() {
     return (
-        <main className="flex min-h-screen flex-col items-center justify-between p-12">
-            <div className="flex place-items-center">
-                <p>
-                    Ssssssssssssssssss.
-                </p>
-            </div>
+        <main className="flex min-h-screen flex-col items-center p-12">
+            <Snake />
         </main>
     );
 }
