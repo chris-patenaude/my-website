@@ -11,11 +11,10 @@ export default function Snake() {
     const square = useRef(null);
 
     useEffect(() => {
-
         // Initialize PIXI and create a canvas
         app.current = new PIXI.Application({
-            width: 800,
-            height: 600,
+            width: container.current.clientWidth,
+            height: container.current.clientHeight,
             backgroundColor: 0x1099bb,
         });
         container.current.appendChild(app.current.view);
@@ -48,6 +47,6 @@ export default function Snake() {
     }, []);
 
     return (
-        <div ref={container} className="flex place-items-center"></div>
+        <div ref={container} className={"grow m-5 rounded overflow-hidden"}></div>
     );
 }
