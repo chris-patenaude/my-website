@@ -30,43 +30,19 @@ export default function Snake() {
 
         app.current.stage.addChild(square.current);
         app.current.ticker.add(() => {
-            square.current.x += v.current.x;
-            square.current.y += v.current.y;
-            if (square.current.x <= 0 || square.current.x + square.current.width >= app.current.screen.width) {
-                v.current.x = -v.current.x;
-            }
-            if (square.current.y <= 0 || square.current.y + square.current.height >= app.current.screen.height) {
-                v.current.y = -v.current.y;
-            }
+            let {x, y, width, height} = square.current;
+            x += v.current.x;
+            y += v.current.y;
+
+            // If the square goes out of bounds, set it to the bounds
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
+            if (x > app.current.renderer.width - width) x = app.current.renderer.width - width;
+            if (y > app.current.renderer.height - height) y = app.current.renderer.height - height;
+            square.current.x = x;
+            square.current.y = y;
         });
 
-        // Handle arrow keys and WASD
-        const onKeyDown = (e) => {
-            console.log("Key down", e.key)
-            switch (e.key) {
-                case "ArrowUp":
-                case "w":
-                    v.current.y = reverse(V);
-                    v.current.x = 0;
-                    break;
-                case "ArrowDown":
-                case "s":
-                    v.current.y = V;
-                    v.current.x = 0;
-                    break;
-                case "ArrowLeft":
-                case "a":
-                    v.current.x = reverse(V);
-                    v.current.y = 0;
-                    break;
-                case "ArrowRight":
-                case "d":
-                    v.current.x = V;
-                    v.current.y = 0;
-                    break;
-            }
-
-        };
         window.addEventListener("keydown", onKeyDown);
 
         return () => {
@@ -75,9 +51,30 @@ export default function Snake() {
         };
 
     }, []);
-
-    function reverse(v) {
-        return -v;
+    // Handle arrow keys and WASD
+    function onKeyDown(e) {
+        switch (e.key) {
+            case "ArrowUp":
+            case "w":
+                v.current.y = -V;
+                v.current.x = 0;
+                break;
+            case "ArrowDown":
+            case "s":
+                v.current.y = V;
+                v.current.x = 0;
+                break;
+            case "ArrowLeft":
+            case "a":
+                v.current.x = -V;
+                v.current.y = 0;
+                break;
+            case "ArrowRight":
+            case "d":
+                v.current.x = V;
+                v.current.y = 0;
+                break;
+        }
     }
 
     return (
