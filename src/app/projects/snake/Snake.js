@@ -11,6 +11,7 @@ export default function Snake() {
     const head = useRef(null);
     const tail = useRef(null);
     const v = useRef({x: 0, y: V});
+    const headQueue = useRef([]);
 
     useEffect(() => {
         setup().then(() => window.addEventListener("keydown", onKeyDown));
@@ -92,27 +93,23 @@ export default function Snake() {
         if (y > app.current.renderer.height - height / 2) y = app.current.renderer.height - height / 2;
         head.current.x = x;
         head.current.y = y;
+
+        headQueue.current.push({x, y});
+
+        if(headQueue.current.length > 20) {
+            headQueue.current.shift();
+        }
     }
 
     function updateTailPos() {
-        if(v.current.x < 0) {
-            // move the tail to the right of the head
-            tail.current.x = head.current.x + 100;
-        }
-        if(v.current.x > 0) {
-            // move the tail to the left of the head
-            tail.current.x = head.current.x - 100;
-        }
-        if(v.current.y < 0) {
-            // move the tail to the bottom of the head
-            tail.current.y = head.current.y + 100;
-
-        }
-        if(v.current.y > 0) {
-            // move the tail to the top of the head
-            tail.current.y = head.current.y - 100;
-
-        }
+        let {x, y, width, height} = tail.current;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+        const {x: hx, y: hy} = headQueue.current[0];
+        x = hx;
+        y = hy;
+        tail.current.x = x;
+        tail.current.y = y;
 
     }
 
@@ -126,6 +123,7 @@ export default function Snake() {
         sprite.y = y;
         return sprite;
     }
+
 
     return (
         <div ref={container} className={"grow m-5 rounded overflow-hidden"}></div>
