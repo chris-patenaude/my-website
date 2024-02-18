@@ -6,81 +6,70 @@ import * as PIXI from "pixi.js";
 const V = 5;
 
 export default function Snake() {
+    const v = useRef({x: 0, y: V});
     const container = useRef(null);
     const app = useRef(null);
-    const head = useRef(null);
-    const tail = useRef(null);
-    const v = useRef({x: 0, y: V});
-    const headQueue = useRef([]);
+    const snakeSegments = useRef([]);
 
     useEffect(() => {
-        setup().then(() => window.addEventListener("keydown", onKeyDown));
-        return () => {
-            app.current.destroy(true);
-            window.removeEventListener("keydown", onKeyDown);
-        };
-    });
-
-    async function setup() {
         app.current = new PIXI.Application({
             width: container.current.clientWidth,
             height: container.current.clientHeight,
             backgroundColor: 0x1099bb,
         });
-        container.current.appendChild(app.current.view);
         // TODO We will want to build Pixi sprite maps for our assets
+        container.current.appendChild(app.current.view);
 
-        const snakeHead = PIXI.Texture.from("/arrow.png");
         const headPos = {x: app.current.renderer.width / 2, y: app.current.renderer.height / 2};
-        head.current = createSprite(headPos, snakeHead);
-
-        const snakeTail = PIXI.Texture.from("/arrow.png");
         const tailPos = {x: headPos.x, y: headPos.y - 100};
-        tail.current = createSprite(tailPos, snakeTail);
+        snakeSegments.current.push(createSnakeSegment(headPos));
+        snakeSegments.current.push(createSnakeSegment(tailPos));
+        snakeSegments.current.push(createSnakeSegment({x: tailPos.x, y: tailPos.y - 200}));
 
-        app.current.stage.addChild(head.current, tail.current);
+        app.current.stage.addChild(...snakeSegments.current,);
         app.current.ticker.add(() => {
             updateHeadPos();
-            updateTailPos();
+            for(let i = 1; i < snakeSegments.current.length; i++) {
+                updateSegmentPos(snakeSegments.current[i], snakeSegments.current[i-1].queue);
+            }
         });
-    }
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            app.current.destroy(true);
+            snakeSegments.current = [];
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    });
 
     // Handle arrow keys and WASD
     function onKeyDown(e) {
+        const head = snakeSegments.current[0];
         switch (e.key) {
             case "ArrowUp":
             case "w":
                 v.current.y = -V;
                 v.current.x = 0;
-                // rotate the sprite to point up (180 degrees)
-                head.current.rotation = Math.PI;
                 break;
             case "ArrowDown":
             case "s":
                 v.current.y = V;
                 v.current.x = 0;
-                // set the sprite to point down (0 degrees)
-                head.current.rotation = 0;
                 break;
             case "ArrowLeft":
             case "a":
                 v.current.x = -V;
                 v.current.y = 0;
-                // rotate the sprite to point left (90 degrees)
-                head.current.rotation = Math.PI / 2;
                 break;
             case "ArrowRight":
             case "d":
                 v.current.x = V;
                 v.current.y = 0;
-                // rotate the sprite to point right (270 degrees)
-                head.current.rotation = -Math.PI / 2;
                 break;
         }
     }
 
     function updateHeadPos() {
-        let {x, y, width, height} = head.current;
+        let {x, y, width, height} = snakeSegments.current[0];
         x += v.current.x;
         y += v.current.y;
         const halfWidth = width / 2;
@@ -91,29 +80,57 @@ export default function Snake() {
         if (y - halfHeight < 0) y = halfHeight;
         if (x > app.current.renderer.width - width / 2) x = app.current.renderer.width - width / 2;
         if (y > app.current.renderer.height - height / 2) y = app.current.renderer.height - height / 2;
-        head.current.x = x;
-        head.current.y = y;
+        if (v.current.x > 0) {
+            snakeSegments.current[0].rotation = -Math.PI / 2;
+        }
+        if (v.current.x < 0) {
+            snakeSegments.current[0].rotation = Math.PI / 2;
+        }
+        if(v.current.y > 0) {
+            snakeSegments.current[0].rotation = 0;
+        }
+        if(v.current.y < 0) {
+            snakeSegments.current[0].rotation = Math.PI;
+        }
+        updateSegmentPos(snakeSegments.current[0], [{x, y}]);
+    }
 
-        headQueue.current.push({x, y});
+    function updateSegmentPos(segment, leaderQueue) {
+        const {x, y} = leaderQueue[0];
+        segment.x = x;
+        segment.y = y;
+        segment.queue.push({x, y});
 
-        if(headQueue.current.length > 20) {
-            headQueue.current.shift();
+        // if segment changes direction, rotate the sprite
+        // in the direction the segment is moving
+        if (leaderQueue.length <= 1) {
+            return
+        }
+        const {x: x1, y: y1} = leaderQueue[0];
+        const {x: x2, y: y2} = leaderQueue[1];
+        // If the segment is moving vertically
+        if(x1 === x2) {
+            if(y1 > y2) {
+                segment.rotation = Math.PI;
+            } else {
+                segment.rotation = 0;
+            }
+        } else {
+            if(x1 > x2) {
+                segment.rotation = Math.PI / 2;
+            } else {
+                segment.rotation = -Math.PI / 2;
+            }
+        }
+
+        // Remove the last position to maintain a one segment distance
+        while(leaderQueue.length > segment.width / V) {
+            leaderQueue.shift();
         }
     }
 
-    function updateTailPos() {
-        let {x, y, width, height} = tail.current;
-        const halfWidth = width / 2;
-        const halfHeight = height / 2;
-        const {x: hx, y: hy} = headQueue.current[0];
-        x = hx;
-        y = hy;
-        tail.current.x = x;
-        tail.current.y = y;
-
-    }
-
-    function createSprite(pos, texture) {
+    function createSnakeSegment(pos){
+        const texture = PIXI.Texture.from("/arrow.png");
         const sprite = new PIXI.Sprite(texture);
         const {x, y} = pos;
         sprite.anchor.set(0.5);
@@ -121,6 +138,9 @@ export default function Snake() {
         sprite.height = 100;
         sprite.x = x;
         sprite.y = y;
+        // Add position queue to sprite
+
+        sprite.queue = [];
         return sprite;
     }
 
