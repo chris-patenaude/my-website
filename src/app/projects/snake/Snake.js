@@ -17,6 +17,7 @@ export default function Snake() {
             height: container.current.clientHeight,
             backgroundColor: 0x1099bb,
         });
+        const gameContainer = new PIXI.Container();
         // TODO We will want to build Pixi sprite maps for our assets
         container.current.appendChild(app.current.view);
 
@@ -24,13 +25,22 @@ export default function Snake() {
         const tailPos = {x: headPos.x, y: headPos.y - 100};
         snakeSegments.current.push(createSnakeSegment(headPos));
         snakeSegments.current.push(createSnakeSegment(tailPos));
+
+        // Remove later
         snakeSegments.current.push(createSnakeSegment({x: tailPos.x, y: tailPos.y - 200}));
 
-        app.current.stage.addChild(...snakeSegments.current,);
+        gameContainer.addChild(...snakeSegments.current);
+        app.current.stage.addChild(gameContainer);
         app.current.ticker.add(() => {
             updateHeadPos();
             for(let i = 1; i < snakeSegments.current.length; i++) {
                 updateSegmentPos(snakeSegments.current[i], snakeSegments.current[i-1].queue);
+                gameContainer.setChildIndex(snakeSegments.current[i], gameContainer.children.length - 1);
+            }
+            gameContainer.removeChildren(0, gameContainer.children.length - 1);
+            // Reverse the order of the segments so the head is on top
+            for (let i = snakeSegments.current.length -1; i >= 0; i--) {
+                gameContainer.addChild(snakeSegments.current[i]);
             }
         });
         window.addEventListener("keydown", onKeyDown);
@@ -43,7 +53,6 @@ export default function Snake() {
 
     // Handle arrow keys and WASD
     function onKeyDown(e) {
-        const head = snakeSegments.current[0];
         switch (e.key) {
             case "ArrowUp":
             case "w":
@@ -124,7 +133,7 @@ export default function Snake() {
         }
 
         // Remove the last position to maintain a one segment distance
-        while(leaderQueue.length > segment.width / V) {
+        while(leaderQueue.length > segment.width / (V * 1.5)) {
             leaderQueue.shift();
         }
     }
